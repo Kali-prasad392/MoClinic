@@ -24,8 +24,6 @@ class PatientDetails(models.Model):
     class Meta:
         db_table = 'patient_details'
 
-
-
 class PatientQueue(models.Model):
     patient = models.ForeignKey('PatientDetails',on_delete=models.CASCADE,related_name='queue_entries')
     queue_position = models.PositiveIntegerField()

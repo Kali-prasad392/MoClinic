@@ -9,8 +9,12 @@ https://docs.djangoproject.com/en/4.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.1/ref/settings/
 """
-
+import os
+from dotenv import load_dotenv
 from pathlib import Path
+
+# load the environment variables
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-dr-4n-w4z+wy86zhwz6f4xp2lck5)u%rpoh^-q$r!g+9z5=zhz"
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -87,11 +91,11 @@ WSGI_APPLICATION = "moclnic.wsgi.application"
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'moclinic',
-        'USER': 'postgres',
-        'PASSWORD': 'Kali@12345',
-        'HOST': '127.0.0.1',
-        'PORT': '5432',
+        'NAME': os.getenv("PG_DB_NAME"),
+        'USER': os.getenv("PG_DB_USER"),
+        'PASSWORD': os.getenv("PG_DB_PASSWORD"),
+        'HOST': os.getenv("PG_DB_HOST"),
+        'PORT': os.getenv("PG_DB_PORT"),
     }
 }
 # Password validation

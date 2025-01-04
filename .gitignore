@@ -1,0 +1,6 @@
+moclnic/__pycache__/
+PatientManagement/migrations/
+PatientManagement/__pycache__/
+UserAndAccessManagement/migrations/
+UserAndAccessManagement/__pycache__/
+.env
