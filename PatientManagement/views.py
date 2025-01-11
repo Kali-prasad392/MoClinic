@@ -2,25 +2,56 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.timezone import now
+from UserAndAccessManagement.models import CustomUser
 from .models import PatientDetails, PatientQueue, Medicines, Tests, Prescription
 import json
-
+from datetime import datetime
+@csrf_exempt
 def register_patient(request):
     if request.method == 'POST':
-        data = json.loads(request.body)
+        #data = json.loads(request.body)
+        email = request.POST.get('email','')
+        first_name = request.POST.get('first_name','')
+        last_name = request.POST.get('last_name','')
+        date_of_birth = request.POST.get('date_of_birth','')
+        date_of_birth = datetime.strptime(date_of_birth,"%d-%m-%Y")
+        try:
+            user = CustomUser.objects.get(email=email)
+        except CustomUser.DoesNotExist:
+            user = CustomUser.objects.create(email=email,first_name=first_name,last_name=last_name,date_of_birth=date_of_birth)
+            user.set_password("password@123")
+            user.save()
+        
+        weight = request.POST.get('weight','')
+        height = request.POST.get('height','')
+        temperature = request.POST.get('temperature','')
+        blood_pressure = request.POST.get('blood_pressure','')
+        BMI = request.POST.get('BMI','')
+        O2level = request.POST.get('O2level','')
+        blood_sugar = request.POST.get('blood_sugar','')
+        symptoms = request.POST.get('symptoms','')
+        date_visited = request.POST.get('date_visited','')
+        
+        date_visited = datetime.strptime(date_visited,"%d-%m-%Y")
+
+        age = date_visited - date_of_birth
         patient = PatientDetails.objects.create(
-            user_id=data.get('user_id'),
-            weight=data.get('weight'),
-            height=data.get('height'),
-            temperature=data.get('temperature'),
-            blood_pressure=data.get('blood_pressure'),
-            BMI=data.get('BMI'),
-            cholesterol=data.get('cholesterol'),
-            blood_sugar=data.get('blood_sugar'),
-            date_visited=data.get('date_visited'),
-            date_treated=data.get('date_treated')
+            user=user,
+            age = round(age.days/365,2),
+            weight = weight,
+            height = height,
+            temperature = temperature,
+            blood_pressure = blood_pressure,
+            BMI = BMI,
+            O2level = O2level,
+            blood_sugar = blood_sugar,
+            symptoms = symptoms,
+            date_visited = date_visited
         )
-        return JsonResponse({"message": "Patient registered successfully", "patient_id": str(patient.patient_ID)}, status=201)
+        patient.save()
+        #date_treated=request.POST.get('date_treated','')
+        
+        return JsonResponse({"message": "Patient registered successfully", "patient_id": str(patient.patient_ID)}, status=200)
     return JsonResponse({"error": "Invalid request method"}, status=400)
 
 
