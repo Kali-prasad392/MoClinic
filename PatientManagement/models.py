@@ -38,6 +38,7 @@ class Medicines(models.Model):
     name = models.CharField(max_length=255)
     composition = models.TextField()
     company = models.CharField(max_length=255)
+    
     class Meta:
         db_table = 'medicines'
 
@@ -46,6 +47,7 @@ class Tests(models.Model):
     name = models.CharField(max_length=255)
     type_of_test = models.CharField(max_length=50)
     prep_condition = models.TextField(null=True, blank=True)
+
     class Meta:
         db_table = 'tests'
 
@@ -54,8 +56,6 @@ class Prescription(models.Model):
     patient = models.OneToOneField(PatientDetails, on_delete=models.CASCADE, related_name='prescriptions')
     date_generated = models.DateField(default=now)
     date_valid_upto = models.DateField(null=True, blank=True)
-    # Medicines and Tests are stored in JSON format
-    # prescribed_medicines = models.JSONField(null=True, blank=True)
-    # prescribed_tests = models.JSONField(null=True, blank=True)
+
     class Meta:
         db_table = 'prescriptions'
