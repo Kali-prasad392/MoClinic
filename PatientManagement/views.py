@@ -57,12 +57,15 @@ def register_patient(request):
 
 def enqueue_patient(request):
     if request.method == 'POST':
-        data = json.loads(request.body)
-        patient = get_object_or_404(PatientDetails, patient_ID=data.get('patient_id'))
-        PatientQueue.objects.create(
-            patient=patient,
-            queue_position=data.get('queue_position')
+        current_pos = 1
+        if PatientQueue.objects.filter(date_enqueued=datetime.today).exists():
+            current_pos = PatientQueue.objects.filter(date_enqueued=datetime.today).order_by('queue_position').last().queue_position +1
+        
+        queue = PatientQueue.objects.create(
+            patient = PatientDetails.objects.get(patient_ID=request.POST.get('patient_ID')),
+            queue_position = current_pos
         )
+        queue.save()
         return JsonResponse({"message": "Patient added to queue"}, status=200)
     return JsonResponse({"error": "Invalid request method"}, status=400)
 

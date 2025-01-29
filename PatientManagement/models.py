@@ -29,7 +29,7 @@ class PatientQueue(models.Model):
     queue_position = models.PositiveIntegerField()
     date_enqueued = models.DateField(default=now)
     time_enqueued = models.TimeField(default=now)
-
+    status = models.CharField(max_length=10,default='pending')
     class Meta:
         db_table = 'patient_queue'
 
