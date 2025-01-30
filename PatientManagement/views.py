@@ -2,75 +2,113 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.timezone import now
-from UserAndAccessManagement.models import CustomUser
+from django.contrib.auth import authenticate, login
+from django.shortcuts import render, redirect
+from django.http import HttpResponse
 from .models import PatientDetails, PatientQueue, Medicines, Tests, Prescription
 import json
+
 from datetime import datetime
+
+
+
 @csrf_exempt
 def register_patient(request):
     if request.method == 'POST':
-        #data = json.loads(request.body)
-        email = request.POST.get('email','')
-        first_name = request.POST.get('first_name','')
-        last_name = request.POST.get('last_name','')
-        date_of_birth = request.POST.get('date_of_birth','')
-        date_of_birth = datetime.strptime(date_of_birth,"%d-%m-%Y")
+        email = request.POST.get('email', '')
+        first_name = request.POST.get('first_name', '')
+        last_name = request.POST.get('last_name', '')
+        date_of_birth = request.POST.get('date_of_birth', '')
+        
+
+        if not email or not first_name or not last_name or not date_of_birth:
+            return JsonResponse({"error": "Email, First Name, Last Name, and Date of Birth are required fields."}, status=400)
+
+        try:
+            date_of_birth = datetime.strptime(date_of_birth, "%d-%m-%Y")
+        except ValueError:
+            return JsonResponse({"error": "Invalid Date of Birth format. Please use dd-mm-yyyy."}, status=400)
+
         try:
             user = CustomUser.objects.get(email=email)
         except CustomUser.DoesNotExist:
-            user = CustomUser.objects.create(email=email,first_name=first_name,last_name=last_name,date_of_birth=date_of_birth)
+            user = CustomUser.objects.create(
+                email=email,
+                first_name=first_name,
+                last_name=last_name,
+                date_of_birth=date_of_birth
+            )
             user.set_password("password@123")
             user.save()
-        
-        weight = request.POST.get('weight','')
-        height = request.POST.get('height','')
-        temperature = request.POST.get('temperature','')
-        blood_pressure = request.POST.get('blood_pressure','')
-        BMI = request.POST.get('BMI','')
-        O2level = request.POST.get('O2level','')
-        blood_sugar = request.POST.get('blood_sugar','')
-        symptoms = request.POST.get('symptoms','')
-        date_visited = request.POST.get('date_visited','')
-        
-        date_visited = datetime.strptime(date_visited,"%d-%m-%Y")
 
-        age = date_visited - date_of_birth
+
+        try:
+            weight = float(request.POST.get('weight', '0'))
+            height = float(request.POST.get('height', '0'))
+            temperature = float(request.POST.get('temperature', '0'))
+            blood_pressure = request.POST.get('blood_pressure', '')
+            BMI = float(request.POST.get('BMI', '0'))
+            O2level = float(request.POST.get('O2level', '0'))
+            blood_sugar = float(request.POST.get('blood_sugar', '0'))
+            symptoms = request.POST.get('symptoms', '')
+            date_visited = request.POST.get('date_visited', '')
+
+
+            if not date_visited:
+                return JsonResponse({"error": "Date of visit is required."}, status=400)
+
+            date_visited = datetime.strptime(date_visited, "%d-%m-%Y")
+        except ValueError:
+            return JsonResponse({"error": "Invalid number format. Please ensure numeric fields like weight, height, etc., are correct."}, status=400)
+
+
+        age = (date_visited - date_of_birth).days / 365.25
+
         patient = PatientDetails.objects.create(
             user=user,
-            age = round(age.days/365,2),
-            weight = weight,
-            height = height,
-            temperature = temperature,
-            blood_pressure = blood_pressure,
-            BMI = BMI,
-            O2level = O2level,
-            blood_sugar = blood_sugar,
-            symptoms = symptoms,
-            date_visited = date_visited
+            age=round(age, 2),
+            weight=weight,
+            height=height,
+            temperature=temperature,
+            blood_pressure=blood_pressure,
+            BMI=BMI,
+            O2level=O2level,
+            blood_sugar=blood_sugar,
+            symptoms=symptoms,
+            date_visited=date_visited
         )
         patient.save()
-        #date_treated=request.POST.get('date_treated','')
-        
+
         return JsonResponse({"message": "Patient registered successfully", "patient_id": str(patient.patient_ID)}, status=200)
-    return JsonResponse({"error": "Invalid request method"}, status=400)
+    
+    return JsonResponse({"error": "Invalid request method. Use POST."}, status=400)
 
-
+@csrf_exempt
 def enqueue_patient(request):
     if request.method == 'POST':
-        patient_id = request.POST.get('patient_id')
-        queue_position = request.POST.get('queue_position')
-
-        if not patient_id or not queue_position:
-            return JsonResponse({"error": "patient_id and queue_position are required"}, status=400)
+        patient_id = request.POST.get('patient_ID')
+        
+        if not patient_id:
+            return JsonResponse({"error": "Patient ID is required"}, status=400)
 
         patient = get_object_or_404(PatientDetails, patient_ID=patient_id)
 
-        PatientQueue.objects.create(
-            patient=patient,
-            queue_position=queue_position
-        )
-        return JsonResponse({"message": "Patient added to queue", "patient_id": patient_id}, status=200)
+        today = now().date()
 
+        # Get the last queue position for today's date
+        last_queue_entry = PatientQueue.objects.filter(date_enqueued=today).order_by('queue_position').last()
+        
+        # If no entry exists, start from 1; otherwise, increment
+        current_pos = 1 if not last_queue_entry else last_queue_entry.queue_position + 1
+
+        queue_entry = PatientQueue.objects.create(
+            patient=patient,
+            queue_position=current_pos,
+            date_enqueued=today
+        )
+
+        return JsonResponse({"message": "Patient enqueued successfully", "queue_position": queue_entry.queue_position}, status=200)
+    
     return JsonResponse({"error": "Invalid request method"}, status=400)
 
 
@@ -90,6 +128,9 @@ def dequeue_patient(request):
         patient_queue_entry.delete()
 
         return JsonResponse({"message": "Patient dequeued successfully"}, status=200)
+    
+    return JsonResponse({"error": "Invalid request method"}, status=400)
+
 
 
 def call_patient(request):
