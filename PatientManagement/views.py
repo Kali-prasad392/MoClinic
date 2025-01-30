@@ -74,18 +74,22 @@ def enqueue_patient(request):
     return JsonResponse({"error": "Invalid request method"}, status=400)
 
 
+
 def dequeue_patient(request):
     if request.method == 'POST':
-        queue_entry = PatientQueue.objects.order_by('queue_position').first()
+        patient_id = request.POST.get('patient_ID')
 
-        if queue_entry:
-            patient_id = queue_entry.patient.patient_ID
-            queue_entry.delete()
-            return JsonResponse({"message": "Patient dequeued", "patient_id": str(patient_id)}, status=200)
+        if not patient_id:
+            return JsonResponse({"error": "Patient ID is required"}, status=400)
 
-        return JsonResponse({"error": "Queue is empty"}, status=404)
+        patient_queue_entry = PatientQueue.objects.filter(patient__patient_ID=patient_id).first()
 
-    return JsonResponse({"error": "Invalid request method"}, status=400)
+        if not patient_queue_entry:
+            return JsonResponse({"error": "Patient not found in queue"}, status=404)
+
+        patient_queue_entry.delete()
+
+        return JsonResponse({"message": "Patient dequeued successfully"}, status=200)
 
 
 def call_patient(request):
